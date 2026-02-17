@@ -1,0 +1,172 @@
+.email-confirmation-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f1eb 0%, #e8e3d9 100%);
+  padding: 20px;
+}
+
+.email-confirmation-page .container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+  width: 100%;
+  padding: 48px 40px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.capsule-background {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-10deg);
+  opacity: 0.2;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}
+
+.capsule-image {
+  width: 600px;
+  height: auto;
+  max-width: 90vw;
+  object-fit: contain;
+}
+
+.email-confirmation-page .success-icon,
+.email-confirmation-page .error-icon,
+.email-confirmation-page .loading-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+}
+
+.email-confirmation-page .success-icon {
+  background: linear-gradient(135deg, #0466E0 0%, #1a7ae8 100%);
+  animation: scaleIn 0.5s ease-out;
+  box-shadow: 0 4px 16px rgba(4, 102, 224, 0.3);
+}
+
+.email-confirmation-page .error-icon {
+  background: linear-gradient(135deg, #d4a5a5 0%, #c88a8a 100%);
+  animation: scaleIn 0.5s ease-out;
+}
+
+.email-confirmation-page .loading-icon {
+  background: linear-gradient(135deg, #0466E0 0%, #1a7ae8 100%);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.email-confirmation-page .loading-icon::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.email-confirmation-page h1 {
+  color: #4a4a4a;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.email-confirmation-page .subtitle {
+  color: #7a7a7a;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.email-confirmation-page .email {
+  color: #5a5a5a;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.email-confirmation-page .loading-text {
+  color: #7a7a7a;
+  font-size: 14px;
+  margin-top: 8px;
+  position: relative;
+  z-index: 2;
+  font-style: italic;
+}
+
+.email-confirmation-page .button {
+  display: inline-block;
+  background: #0466E0;
+  background-color: #0466E0;
+  color: white;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(4, 102, 224, 0.3);
+  position: relative;
+  z-index: 1;
+  border: none;
+  cursor: pointer;
+}
+
+.email-confirmation-page .button:hover {
+  transform: translateY(-2px);
+  background: #0354b8;
+  background-color: #0354b8;
+  box-shadow: 0 6px 16px rgba(4, 102, 224, 0.4);
+}
+
