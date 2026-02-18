@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "APP",
-    "slug": "app",
+    "name": "Medigo",
+    "slug": "medigo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/MedigoLogo.svg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/MedigoLogo.svg",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
@@ -31,7 +31,7 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/MedigoLogo.svg"
     },
     "plugins": [
       "expo-router",
