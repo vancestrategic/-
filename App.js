@@ -17,6 +17,7 @@ import WeightSelectionPage from './src/pages/WeightSelectionPage/WeightSelection
 import GenderSelectionPage from './src/pages/GenderSelectionPage/GenderSelectionPage';
 import AddCapsulePage from './src/pages/AddCapsulePage/AddCapsulePage';
 import KVKKPage from './src/pages/KVKKPage/KVKKPage';
+import NotificationController from './src/components/NotificationController/NotificationController';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +56,7 @@ export default function App() {
           <Stack.Screen name="KVKK" component={KVKKPage} options={{ presentation: 'modal' }} />
         </Stack.Navigator>
       </NavigationContainer>
+      <NotificationController />
     </ToastProvider>
   );
 }

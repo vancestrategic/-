@@ -4,24 +4,59 @@ import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
-const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
+const Toast = ({ message, type = 'info', onClose, duration = 3000, index = 0 }) => {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(-20)).current;
+  const translateY = useRef(new Animated.Value(-50)).current;
+  const scale = useRef(new Animated.Value(0.9)).current;
 
+  // Update position based on index (stacking effect)
   useEffect(() => {
+    const targetScale = 1 - (index * 0.05);
+    const targetTranslateY = index * 10; // Move down slightly for each item in stack
+    const targetOpacity = 1 - (index * 0.2); // Fade out older items
+
     Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
+      Animated.timing(scale, {
+        toValue: targetScale,
         duration: 300,
         useNativeDriver: true,
       }),
       Animated.spring(translateY, {
-        toValue: 0,
+        toValue: targetTranslateY,
         useNativeDriver: true,
-        friction: 5,
-        tension: 40,
+        friction: 6,
+        tension: 50,
+      }),
+      Animated.timing(opacity, {
+        toValue: targetOpacity,
+        duration: 300,
+        useNativeDriver: true,
       }),
     ]).start();
+  }, [index]);
+
+  useEffect(() => {
+    // Initial entry animation
+    if (index === 0) {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 6,
+          tension: 50,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
 
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -29,7 +64,7 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [duration, onClose]);
+  }, []);
 
   const handleClose = () => {
     Animated.parallel([
@@ -39,7 +74,7 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: -20,
+        toValue: -50,
         duration: 200,
         useNativeDriver: true,
       }),
@@ -100,9 +135,11 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
         styles.container, 
         { 
           opacity, 
-          transform: [{ translateY }],
-          // borderLeftColor: getBorderColor(),
-          // borderLeftWidth: 4,
+          transform: [
+            { translateY },
+            { scale }
+          ],
+          zIndex: 100 - index, // Ensure newer items are on top
         }
       ]}
     >
@@ -127,11 +164,12 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute', // Absolute positioning is key for stacking
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 16,
-    marginVertical: 6,
+    marginVertical: 0, // Remove vertical margin as we handle positioning manually
     width: width * 0.9,
     alignSelf: 'center',
     backgroundColor: '#fff',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,36 +16,42 @@ import {
   Easing
 } from 'react-native';
 import Svg, { Path, Line } from 'react-native-svg';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width, height } = Dimensions.get('window');
+
+const FREQUENCY_OPTIONS = [
+  { id: 'daily', label: 'Her Gün' },
+  { id: 'weekly', label: 'Gerektiğinde' },
+  { id: 'custom', label: 'Özel' }
+];
+
+const DAYS_OF_WEEK = [
+  { id: 'monday', label: 'Pzt' },
+  { id: 'tuesday', label: 'Sl' },
+  { id: 'wednesday', label: 'Çar' },
+  { id: 'thursday', label: 'Per' },
+  { id: 'friday', label: 'Cum' },
+  { id: 'saturday', label: 'Cmt' },
+  { id: 'sunday', label: 'Pzr' }
+];
+
+const DOSAGE_OPTIONS = ['1 tablet', '2 tablet', '1 kapsül', '2 kapsül', '5ml', '10ml'];
 
 const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medicineData }) => {
   const [frequency, setFrequency] = useState('daily');
   const [selectedDays, setSelectedDays] = useState([]);
   const [times, setTimes] = useState([{ time: '', dosage: '1 tablet' }]);
   
+  // Time Picker State
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activeTimeIndex, setActiveTimeIndex] = useState(-1);
+  const [tempDate, setTempDate] = useState(new Date());
+
   // Animation states
   const [showModal, setShowModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(height)).current;
-
-  const frequencyOptions = [
-    { id: 'daily', label: 'Her Gün' },
-    { id: 'weekly', label: 'Gerektiğinde' },
-    { id: 'custom', label: 'Özel' }
-  ];
-
-  const daysOfWeek = [
-    { id: 'monday', label: 'Pzt' },
-    { id: 'tuesday', label: 'Sl' },
-    { id: 'wednesday', label: 'Çar' },
-    { id: 'thursday', label: 'Per' },
-    { id: 'friday', label: 'Cum' },
-    { id: 'saturday', label: 'Cmt' },
-    { id: 'sunday', label: 'Pzr' }
-  ];
-
-  const dosageOptions = ['1 tablet', '2 tablet', '1 kapsül', '2 kapsül', '5ml', '10ml'];
 
   useEffect(() => {
     if (isOpen) {
@@ -53,9 +59,10 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
       if (medicineData && medicineData.schedule) {
          // Existing logic adaptation could go here
       } else {
-        // Default
+        // Default reset when opening
         setFrequency('daily');
-        setSelectedDays(daysOfWeek.map(day => day.id));
+        // We set selectedDays in the frequency effect, but to be sure:
+        setSelectedDays(DAYS_OF_WEEK.map(day => day.id));
         setTimes([{ time: '', dosage: '1 tablet' }]);
       }
       
@@ -94,22 +101,24 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (frequency === 'daily') {
-      setSelectedDays(daysOfWeek.map(day => day.id));
-    } else if (frequency === 'weekly') {
+  const handleFrequencyChange = (newFreq) => {
+    setFrequency(newFreq);
+    if (newFreq === 'daily') {
+      setSelectedDays(DAYS_OF_WEEK.map(day => day.id));
+    } else if (newFreq === 'weekly') {
       setSelectedDays([]);
-    } else if (frequency === 'custom') {
-       // Keep existing selection or clear if empty? 
-       // Better to keep existing if switching back to custom
+    } else if (newFreq === 'custom') {
+      setSelectedDays([]);
     }
-  }, [frequency]);
+  };
 
   const handleDayToggle = (dayId) => {
     if (frequency === 'daily') {
+      // First change frequency to custom, then update days
+      // Note: We don't use handleFrequencyChange here because we want to keep other days selected
       setFrequency('custom');
-      // When switching from daily to custom by untoggling a day, we start with all days and remove one
-      const allDays = daysOfWeek.map(d => d.id);
+      
+      const allDays = DAYS_OF_WEEK.map(d => d.id);
       setSelectedDays(allDays.filter(d => d !== dayId));
     } else {
       setSelectedDays(prev =>
@@ -136,13 +145,52 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
     }
   };
 
+  const handleTimePress = (index) => {
+    setActiveTimeIndex(index);
+    const currentTimeStr = times[index].time;
+    let date = new Date();
+    
+    if (currentTimeStr) {
+      const [hours, minutes] = currentTimeStr.split(':');
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+    } else {
+      // Default to 08:00 if empty
+      date.setHours(8, 0, 0, 0);
+    }
+    
+    setTempDate(date);
+    setShowTimePicker(true);
+  };
+
+  const onTimeChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+      if (selectedDate) {
+        const hours = selectedDate.getHours().toString().padStart(2, '0');
+        const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+        handleTimeChange(activeTimeIndex, 'time', `${hours}:${minutes}`);
+      }
+    } else {
+      // iOS just updates the temp date
+      if (selectedDate) {
+        setTempDate(selectedDate);
+      }
+    }
+  };
+
+  const handleIOSConfirm = () => {
+    const hours = tempDate.getHours().toString().padStart(2, '0');
+    const minutes = tempDate.getMinutes().toString().padStart(2, '0');
+    handleTimeChange(activeTimeIndex, 'time', `${hours}:${minutes}`);
+    setShowTimePicker(false);
+  };
+
   const isFormValid = () => {
     if (!frequency) return false;
     if (frequency === 'weekly') return true; // "Gerektiğinde" might not need times
     if (selectedDays.length === 0) return false;
     
     // For now, valid time check is simple length check
-    // Ideally regex for HH:MM
     const validTimes = times.filter(time => time.time.length >= 4); 
     if (validTimes.length === 0) return false;
 
@@ -209,14 +257,14 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
                 <View style={styles.fieldContainer}>
                   <Text style={styles.label}>Bunu Ne Zaman Alıyorsun?</Text>
                   <View style={styles.frequencyContainer}>
-                     {frequencyOptions.map(opt => (
+                     {FREQUENCY_OPTIONS.map(opt => (
                         <TouchableOpacity
                            key={opt.id}
                            style={[
                              styles.frequencyOption,
                              frequency === opt.id && styles.selectedFrequencyOption
                            ]}
-                           onPress={() => setFrequency(opt.id)}
+                           onPress={() => handleFrequencyChange(opt.id)}
                         >
                            <Text style={[
                              styles.frequencyText,
@@ -231,7 +279,7 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
                 {frequency !== 'weekly' && (
                   <View style={styles.fieldContainer}>
                     <View style={styles.daysContainer}>
-                      {daysOfWeek.map((day) => (
+                      {DAYS_OF_WEEK.map((day) => (
                         <TouchableOpacity
                           key={day.id}
                           style={[
@@ -258,17 +306,17 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
                     <Text style={styles.label}>Saat Kaçta?</Text>
                     {times.map((timeData, index) => (
                       <View key={index} style={styles.timeRow}>
-                        <TextInput
+                        <TouchableOpacity
                           style={styles.timeInput}
-                          placeholder="08:00"
-                          value={timeData.time}
-                          onChangeText={(text) => handleTimeChange(index, 'time', text)}
-                          keyboardType="numbers-and-punctuation"
-                          maxLength={5}
-                        />
+                          onPress={() => handleTimePress(index)}
+                        >
+                          <Text style={styles.timeInputText}>
+                            {timeData.time || '08:00'}
+                          </Text>
+                        </TouchableOpacity>
                          {/* Simplified Dosage Selection for Native */}
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dosageScroll}>
-                           {dosageOptions.map(d => (
+                           {DOSAGE_OPTIONS.map(d => (
                               <TouchableOpacity 
                                 key={d}
                                 style={[
@@ -322,6 +370,49 @@ const AddMedicineScheduleModal = ({ isOpen, onClose, onAddMedicine, onBack, medi
            </TouchableWithoutFeedback>
         </Animated.View>
       </TouchableWithoutFeedback>
+
+      {/* Android Picker */}
+      {Platform.OS === 'android' && showTimePicker && (
+        <DateTimePicker
+          value={tempDate}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onTimeChange}
+        />
+      )}
+
+      {/* iOS Picker Modal */}
+      {Platform.OS === 'ios' && showTimePicker && (
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={showTimePicker}
+          onRequestClose={() => setShowTimePicker(false)}
+        >
+          <View style={styles.iosPickerOverlay}>
+            <View style={styles.iosPickerContainer}>
+              <View style={styles.iosPickerHeader}>
+                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                  <Text style={styles.iosPickerCancel}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleIOSConfirm}>
+                  <Text style={styles.iosPickerDone}>Tamam</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="time"
+                is24Hour={true}
+                display="spinner"
+                onChange={onTimeChange}
+                style={styles.iosDatePicker}
+                textColor="black"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </Modal>
   );
 };
@@ -456,9 +547,51 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     borderRadius: 12,
     padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeInputText: {
     fontSize: 16,
-    textAlign: 'center',
+    color: '#333',
     fontFamily: 'PPNeueMontreal-Regular',
+    textAlign: 'center',
+  },
+  iosPickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  iosPickerContainer: {
+    backgroundColor: 'white',
+    paddingBottom: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    alignItems: 'center', // Center content horizontally
+  },
+  iosDatePicker: {
+    width: '100%',
+    height: 200,
+    alignSelf: 'center', // Ensure picker itself is centered
+  },
+  iosPickerHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    backgroundColor: '#f8f8f8',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  iosPickerCancel: {
+    color: 'red',
+    fontSize: 16,
+  },
+  iosPickerDone: {
+    color: '#0171E4',
+    fontSize: 16,
+    fontWeight: '600',
   },
   dosageScroll: {
     flex: 1,

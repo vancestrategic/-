@@ -218,20 +218,21 @@ const IntroPage = () => {
                   autoCapitalize="none"
                   keyboardType="email-address"
                 />
-                <TouchableOpacity 
-                  style={[styles.inputButton, (!resetEmail.trim() || isSendingCode) && styles.disabledButton]} 
-                  onPress={handleResetEmailSubmit}
-                  disabled={!resetEmail.trim() || isSendingCode}
-                >
-                  {isSendingCode ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.inputButtonText}>Kod Gönder</Text>
-                  )}
-                </TouchableOpacity>
               </View>
               
               {resetEmailError ? <Text style={styles.errorText}>{resetEmailError}</Text> : null}
+
+              <TouchableOpacity 
+                style={[styles.primaryButton, (!resetEmail.trim() || isSendingCode) && styles.disabledButton]} 
+                onPress={handleResetEmailSubmit}
+                disabled={!resetEmail.trim() || isSendingCode}
+              >
+                {isSendingCode ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Kod Gönder</Text>
+                )}
+              </TouchableOpacity>
               
               <TouchableOpacity style={{ marginTop: 20 }} onPress={() => setForgotPasswordStep(null)}>
               </TouchableOpacity>

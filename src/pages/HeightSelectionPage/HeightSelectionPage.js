@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,8 @@ const HeightSelectionPage = ({ navigation, route }) => {
   const [selectedHeight, setSelectedHeight] = useState(170);
   const [showKVKKMessage, setShowKVKKMessage] = useState(false);
   
-  // Generate heights 120-220
-  const heights = Array.from({ length: 101 }, (_, i) => i + 120);
+  // Generate heights 120-220 - useMemo to prevent regeneration
+  const heights = useMemo(() => Array.from({ length: 101 }, (_, i) => i + 120), []);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef(null);
@@ -40,7 +40,7 @@ const HeightSelectionPage = ({ navigation, route }) => {
         }
     }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [heights]); // Add dependency
 
   const handleNext = () => {
     navigation.navigate('WeightSelection', {
@@ -55,7 +55,7 @@ const HeightSelectionPage = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = useCallback(({ item, index }) => {
     const inputRange = [
       (index - 2) * ITEM_HEIGHT,
       (index - 1) * ITEM_HEIGHT,
@@ -71,15 +71,15 @@ const HeightSelectionPage = ({ navigation, route }) => {
     });
 
     const opacity = scrollY.interpolate({
-        inputRange,
-        outputRange: [0.3, 0.5, 1, 0.5, 0.3],
-        extrapolate: 'clamp',
+      inputRange,
+      outputRange: [0.3, 0.5, 1, 0.5, 0.3],
+      extrapolate: 'clamp',
     });
 
     const color = scrollY.interpolate({
-        inputRange,
-        outputRange: ['#999', '#666', '#1e1f28', '#666', '#999'],
-        extrapolate: 'clamp',
+      inputRange,
+      outputRange: ['#999', '#666', '#1e1f28', '#666', '#999'],
+      extrapolate: 'clamp',
     });
 
     return (
@@ -97,7 +97,23 @@ const HeightSelectionPage = ({ navigation, route }) => {
         </Animated.Text>
       </Animated.View>
     );
-  };
+  }, [scrollY]);
+
+  const getItemLayout = useCallback((data, index) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  const keyExtractor = useCallback((item) => item.toString(), []);
+
+  const onMomentumScrollEnd = useCallback((event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    if (heights[index]) {
+        setSelectedHeight(heights[index]);
+    }
+  }, [heights]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -130,33 +146,27 @@ const HeightSelectionPage = ({ navigation, route }) => {
           <Animated.FlatList
             ref={flatListRef}
             data={heights}
-            keyExtractor={(item) => item.toString()}
+            keyExtractor={keyExtractor}
             renderItem={renderItem}
-            getItemLayout={(data, index) => ({
-              length: ITEM_HEIGHT,
-              offset: ITEM_HEIGHT * index,
-              index,
-            })}
+            getItemLayout={getItemLayout}
             snapToInterval={ITEM_HEIGHT}
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
             bounces={false}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: false }
+              { useNativeDriver: true }
             )}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingVertical: (350 - ITEM_HEIGHT) / 2,
             }}
             style={styles.flatList}
-            onMomentumScrollEnd={(event) => {
-                const offsetY = event.nativeEvent.contentOffset.y;
-                const index = Math.round(offsetY / ITEM_HEIGHT);
-                if (heights[index]) {
-                    setSelectedHeight(heights[index]);
-                }
-            }}
+            onMomentumScrollEnd={onMomentumScrollEnd}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
           />
         </View>
 

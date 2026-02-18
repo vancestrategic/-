@@ -19,10 +19,16 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((message, type = 'info', duration = 4000) => {
+  const showToast = useCallback((message, type = 'info', duration = 3000) => {
     const id = Date.now() + Math.random();
-    const newToast = { id, message, type, duration };
-    setToasts((prev) => [...prev, newToast]);
+    // Only keep the last 2 toasts plus the new one to prevent too many overlapping
+    setToasts((prev) => {
+      const newToasts = [...prev, { id, message, type, duration }];
+      if (newToasts.length > 3) {
+        return newToasts.slice(newToasts.length - 3);
+      }
+      return newToasts;
+    });
     return id;
   }, []);
 
@@ -35,15 +41,18 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={{ showToast, success, error, warning, info, removeToast }}>
       {children}
       <View style={styles.toastContainer} pointerEvents="box-none">
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
+        {toasts.map((toast, index) => {
+          // Calculate reverse index (0 is newest)
+          const reverseIndex = toasts.length - 1 - index;
+          return (
+            <Toast
+              key={toast.id}
+              {...toast}
+              onClose={() => removeToast(toast.id)}
+              index={reverseIndex}
+            />
+          );
+        })}
       </View>
     </ToastContext.Provider>
   );

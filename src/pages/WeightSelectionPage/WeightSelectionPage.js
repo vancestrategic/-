@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,8 +24,8 @@ const WeightSelectionPage = ({ navigation, route }) => {
   const [selectedWeight, setSelectedWeight] = useState(70);
   const [showKVKKMessage, setShowKVKKMessage] = useState(false);
   
-  // Generate weights 30-150
-  const weights = Array.from({ length: 121 }, (_, i) => i + 30);
+  // Generate weights 30-150 - useMemo to prevent regeneration
+  const weights = useMemo(() => Array.from({ length: 121 }, (_, i) => i + 30), []);
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef(null);
@@ -42,22 +42,22 @@ const WeightSelectionPage = ({ navigation, route }) => {
         }
     }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [weights]); // Add dependency
 
-  const calculateBMI = (weight, height) => {
+  const calculateBMI = useCallback((weight, height) => {
     const heightInMeters = height / 100;
     return weight / (heightInMeters * heightInMeters);
-  };
+  }, []);
 
-  const getWeightStatus = (weight, height) => {
+  const getWeightStatus = useCallback((weight, height) => {
     const bmi = calculateBMI(weight, height);
     if (bmi < 18.5) return 'underweight';
     if (bmi < 25) return 'normal';
     if (bmi < 30) return 'overweight';
     return 'obese';
-  };
+  }, [calculateBMI]);
 
-  const getWeightStatusColors = (status) => {
+  const getWeightStatusColors = useCallback((status) => {
     switch (status) {
       case 'underweight':
         return {
@@ -95,7 +95,7 @@ const WeightSelectionPage = ({ navigation, route }) => {
           text: '#333'
         };
     }
-  };
+  }, []);
 
   const handleNext = () => {
     navigation.navigate('GenderSelection', {
@@ -110,7 +110,7 @@ const WeightSelectionPage = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = useCallback(({ item, index }) => {
     const inputRange = [
       (index - 2) * ITEM_HEIGHT,
       (index - 1) * ITEM_HEIGHT,
@@ -126,15 +126,15 @@ const WeightSelectionPage = ({ navigation, route }) => {
     });
 
     const opacity = scrollY.interpolate({
-        inputRange,
-        outputRange: [0.3, 0.5, 1, 0.5, 0.3],
-        extrapolate: 'clamp',
+      inputRange,
+      outputRange: [0.3, 0.5, 1, 0.5, 0.3],
+      extrapolate: 'clamp',
     });
 
     const color = scrollY.interpolate({
-        inputRange,
-        outputRange: ['#999', '#666', '#1e1f28', '#666', '#999'],
-        extrapolate: 'clamp',
+      inputRange,
+      outputRange: ['#999', '#666', '#1e1f28', '#666', '#999'],
+      extrapolate: 'clamp',
     });
     
     // Check if this item is selected to apply specific styling
@@ -172,7 +172,23 @@ const WeightSelectionPage = ({ navigation, route }) => {
         </Animated.View>
       </Animated.View>
     );
-  };
+  }, [scrollY, selectedWeight, userHeight, getWeightStatus, getWeightStatusColors]);
+
+  const getItemLayout = useCallback((data, index) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  const keyExtractor = useCallback((item) => item.toString(), []);
+
+  const onMomentumScrollEnd = useCallback((event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    if (weights[index]) {
+        setSelectedWeight(weights[index]);
+    }
+  }, [weights]);
 
   const currentStatus = getWeightStatus(selectedWeight, userHeight);
   const statusInfo = getWeightStatusColors(currentStatus);
@@ -208,33 +224,28 @@ const WeightSelectionPage = ({ navigation, route }) => {
           <Animated.FlatList
             ref={flatListRef}
             data={weights}
-            keyExtractor={(item) => item.toString()}
+            keyExtractor={keyExtractor}
             renderItem={renderItem}
-            getItemLayout={(data, index) => ({
-              length: ITEM_HEIGHT,
-              offset: ITEM_HEIGHT * index,
-              index,
-            })}
+            getItemLayout={getItemLayout}
             snapToInterval={ITEM_HEIGHT}
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
             bounces={false}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: false }
+              { useNativeDriver: true }
             )}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingVertical: (350 - ITEM_HEIGHT) / 2,
             }}
             style={styles.flatList}
-            onMomentumScrollEnd={(event) => {
-                const offsetY = event.nativeEvent.contentOffset.y;
-                const index = Math.round(offsetY / ITEM_HEIGHT);
-                if (weights[index]) {
-                    setSelectedWeight(weights[index]);
-                }
-            }}
+            onMomentumScrollEnd={onMomentumScrollEnd}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            extraData={selectedWeight} // Ensure re-render when selectedWeight changes
           />
         </View>
         

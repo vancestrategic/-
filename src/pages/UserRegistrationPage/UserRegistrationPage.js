@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, Dimensions, ActivityIndicator, Keyboard } from 'react-native';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 import { smtiaApi } from '../../services/smtiaApi';
 
@@ -66,6 +66,11 @@ const UserRegistrationPage = ({ onRegistrationComplete, onBackToIntro, navigatio
   const currentValue = formData[currentStepData.field];
 
   const handleNext = () => {
+    // Sadece şifre adımında (adım 4) klavyeyi kapat
+    if (currentStep === 4) {
+      Keyboard.dismiss();
+    }
+    
     if (!currentValue.trim()) {
       setErrorMessage('Bu alan boş olamaz');
       return;
@@ -177,7 +182,10 @@ const UserRegistrationPage = ({ onRegistrationComplete, onBackToIntro, navigatio
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled" // Klavye açıkken butonlara basılabilmesini sağlar
+      >
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -207,6 +215,8 @@ const UserRegistrationPage = ({ onRegistrationComplete, onBackToIntro, navigatio
                 secureTextEntry={currentStep === 4 && !showPassword}
                 autoCapitalize={currentStep === 3 ? 'none' : 'words'}
                 autoCorrect={false}
+                onSubmitEditing={handleNext} // Klavyeden 'Git' tuşuna basınca tetiklensin
+                returnKeyType={currentStep === 4 ? 'done' : 'next'} // Son adımda 'Bitti', diğerlerinde 'İleri' göstersin
               />
               
               {currentStep === 4 && (
@@ -218,7 +228,7 @@ const UserRegistrationPage = ({ onRegistrationComplete, onBackToIntro, navigatio
                     </Svg>
                   ) : (
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <Path d="M1 12s4-8 11-8 11 8 11 8 8-4 8-11 8-11-8-11-8z" />
+                      <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <Circle cx="12" cy="12" r="3" />
                     </Svg>
                   )}
@@ -267,7 +277,12 @@ const UserRegistrationPage = ({ onRegistrationComplete, onBackToIntro, navigatio
                 styles.primaryButton, 
                 (!currentValue.trim() || isCheckingEmail || (currentStep === 4 && !isPasswordValid())) && styles.disabledButton
               ]} 
-              onPress={handleNext}
+              onPress={(e) => {
+                // Event'in bubbling yapmasını engellemeye çalışalım (gerekirse)
+                e.preventDefault && e.preventDefault();
+                handleNext();
+              }}
+              activeOpacity={0.7} // Dokunma hassasiyetini artır
               disabled={!currentValue.trim() || isCheckingEmail || (currentStep === 4 && !isPasswordValid())}
             >
               {isCheckingEmail ? (
